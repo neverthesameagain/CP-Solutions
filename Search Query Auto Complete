@@ -1,0 +1,100 @@
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
+class TrieNode {
+public:
+    vector<TrieNode*> children;
+    int v;
+    string w;
+
+    TrieNode() : children(27, nullptr), v(0), w("") {}
+};
+
+class Trie {
+public:
+    TrieNode* root;
+
+    Trie() {
+        root = new TrieNode();
+    }
+
+    void insert(const string& w, int t) {
+        TrieNode* node = root;
+        for (char c : w) {
+            int idx = (c == ' ') ? 26 : c - 'a';
+            if (node->children[idx] == nullptr) {
+                node->children[idx] = new TrieNode();
+            }
+            node = node->children[idx];
+        }
+        node->v += t;
+        node->w = w;
+    }
+
+    TrieNode* search(const string& pref) {
+        TrieNode* node = root;
+        for (char c : pref) {
+            int idx = (c == ' ') ? 26 : c - 'a';
+            if (node->children[idx] == nullptr) {
+                return nullptr;
+            }
+            node = node->children[idx];
+        }
+        return node;
+    }
+};
+
+class AutoCompleteSystem {
+private:
+    Trie trie;
+    string current_input;
+
+    void dfs(TrieNode* node, vector<pair<int, string>>& res) {
+        if (node == nullptr) return;
+        if (node->v > 0) {
+            res.push_back({node->v, node->w});
+        }
+        for (auto child : node->children) {
+            dfs(child, res);
+        }
+    }
+
+public:
+    AutoCompleteSystem(vector<string>& sentences, vector<int>& times) {
+        for (int i = 0; i < sentences.size(); ++i) {
+            trie.insert(sentences[i], times[i]);
+        }
+    }
+
+    vector<string> input(char c) {
+        if (c == '#') {
+            trie.insert(current_input, 1);
+            current_input.clear();
+            return {};
+        }
+
+        current_input += c;
+        TrieNode* node = trie.search(current_input);
+        vector<pair<int, string>> res;
+
+        if (node != nullptr) {
+            dfs(node, res);
+            sort(res.begin(), res.end(), [](const pair<int, string>& a, const pair<int, string>& b) {
+                if (a.first == b.first) return a.second < b.second;
+                return a.first > b.first;
+            });
+        }
+
+        vector<string> result;
+        for (int i = 0; i < min(3, (int)res.size()); ++i) {
+            result.push_back(res[i].second);
+        }
+
+        return result;
+    }
+};
